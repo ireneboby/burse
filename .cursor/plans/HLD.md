@@ -4,10 +4,10 @@ overview: Build a React Native (Expo) receipt scanning app that uses Google Gemi
 todos:
   - id: init-expo
     content: Initialize Expo project with TypeScript, install all dependencies
-    status: pending
+    status: completed
   - id: data-layer
     content: Set up SQLite database schema, image storage helpers, and Receipt type definitions
-    status: pending
+    status: completed
   - id: gemini-client
     content: Build Gemini API client with prompt engineering, image resizing, rate limiting, and JSON parsing
     status: pending
@@ -53,8 +53,12 @@ isProject: false
 | ----- | ------ | --- |
 
 
-- **Framework**: React Native + Expo (SDK 52) — you know RN, Expo simplifies builds and native module access
-- **Language**: TypeScript
+- **Framework**: React Native 0.81 + Expo SDK 54 — Expo simplifies builds and native module access
+- **Language**: TypeScript (strict mode)
+- **Routing**: Expo Router v6 — file-based routing with typed routes
+- **Styling**: NativeWind v4 (Tailwind CSS for React Native) — light mode only
+- **Typography**: DM Sans (geometric sans-serif via `@expo-google-fonts/dm-sans`) — Regular, Medium, Bold
+- **Color palette**: Deep navy (`#1B2541`) + burnished copper (`#C27C4E`) on warm ivory (`#FAF8F5`)
 - **Camera**: `expo-camera` — rapid-fire receipt capture with preview
 - **LLM**: Google Gemini 2.0 Flash (free tier) — best free vision model; 1,500 requests/day, 15 RPM
 - **Local Storage**: `expo-sqlite` for structured data + `expo-file-system` for receipt images
@@ -98,24 +102,29 @@ Return ONLY valid JSON. If a field cannot be determined, use null.
 
 ## Data Model
 
+Defined in `types/receipt.ts`. Stored in `expo-sqlite` (`burse.db`) for queryability. Images stored in `expo-file-system` document directory under `receipts/`.
+
 ```typescript
+type ReceiptStatus = 'pending' | 'processing' | 'done' | 'error';
+type ConfidenceLevel = 'low' | 'medium' | 'high';
+
 interface Receipt {
-  id: string;                // UUID
-  imageUri: string;          // local file path to the receipt photo
+  id: string;                   // UUID
+  imageUri: string;             // local file path to the receipt photo
   totalAmount: number | null;
   currency: string | null;
-  date: string | null;       // ISO 8601
+  date: string | null;          // ISO 8601
   vendorName: string | null;
   description: string | null;
   category: string | null;
-  confidence: 'low' | 'medium' | 'high';
-  status: 'pending' | 'processing' | 'done' | 'error';
-  createdAt: string;         // when photo was taken
-  errorMessage?: string;
+  confidence: ConfidenceLevel;
+  status: ReceiptStatus;
+  createdAt: string;            // when photo was taken
+  errorMessage: string | null;  // null, not optional — 1:1 SQLite column mapping
 }
 ```
 
-Stored in `expo-sqlite` for queryability. Images stored in `expo-file-system` document directory.
+CRUD operations in `lib/database.ts`. Image storage in `lib/storage.ts` (uses SDK 54 class-based `Paths`/`File`/`Directory` API).
 
 ---
 
@@ -197,27 +206,34 @@ flowchart LR
 
 ```
 burse/
-  app/                    # Expo Router file-based routing
+  app/                      # Expo Router file-based routing
+    _layout.tsx             # Root Stack layout (font loading, splash screen)
     (tabs)/
-      index.tsx           # Home / Dashboard
-      history.tsx         # Results table (all receipts)
-    camera.tsx            # Camera capture screen
-    review.tsx            # Review queue before processing
-    export.tsx            # Export configuration & share
+      _layout.tsx           # Bottom tab navigator (Home + Receipts)
+      index.tsx             # Home / Dashboard
+      history.tsx           # Results table (all receipts)
+    camera.tsx              # Camera capture screen (full-screen modal)
+    review.tsx              # Review queue before processing
+    export.tsx              # Export configuration & share
   components/
-    ReceiptCard.tsx       # Receipt display card
-    EditableField.tsx     # Inline-editable text field
-    ConfidenceBadge.tsx   # Color-coded confidence indicator
+    ReceiptCard.tsx         # Receipt display card
+    EditableField.tsx       # Inline-editable text field
+    ConfidenceBadge.tsx     # Color-coded confidence indicator
   lib/
-    gemini.ts             # Gemini API client
-    database.ts           # SQLite setup & queries
-    export.ts             # XLSX generation + ZIP bundling
-    storage.ts            # Image file management
+    gemini.ts               # Gemini API client
+    database.ts             # SQLite setup & queries
+    export.ts               # XLSX generation + ZIP bundling
+    storage.ts              # Image file management
   constants/
-    prompts.ts            # LLM prompt templates
+    prompts.ts              # LLM prompt templates
   types/
-    receipt.ts            # TypeScript interfaces
-  app.json                # Expo config
+    receipt.ts              # TypeScript interfaces
+  global.css                # Tailwind directives (@tailwind base/components/utilities)
+  tailwind.config.js        # NativeWind config: custom colors, fonts
+  babel.config.js           # Babel config with NativeWind preset
+  metro.config.js           # Metro bundler config with NativeWind
+  nativewind-env.d.ts       # TypeScript types for className prop
+  app.json                  # Expo config
   package.json
 ```
 
@@ -233,23 +249,31 @@ burse/
 6. **Inline editing** — the LLM will occasionally get things wrong; fast inline correction keeps the flow smooth
 7. **No backend server** — API key embedded in app, everything local, zero infrastructure cost
 8. **Expo Router** — file-based routing is the modern Expo standard, simple and clean
+9. **NativeWind (Tailwind CSS)** — utility-first styling for consistent, rapid UI development across all screens
+10. **DM Sans typography** — geometric sans-serif font (Regular/Medium/Bold) for a modern minimalist luxury feel
+11. **Navy + Copper palette** — distinctive luxurious color scheme; copper CTAs, navy structure, warm ivory backgrounds
 
 ---
 
-## Dependencies
+## Dependencies (as installed)
 
 ```json
 {
-  "expo": "~52.0.0",
-  "expo-camera": "~16.0.0",
-  "expo-file-system": "~18.0.0",
-  "expo-sharing": "~13.0.0",
-  "expo-sqlite": "~15.0.0",
-  "expo-image-manipulator": "~13.0.0",
-  "xlsx": "^0.18.5",
-  "jszip": "^3.10.1",
-  "@google/generative-ai": "^0.21.0",
-  "uuid": "^9.0.0"
+  "expo": "~54.0.33",
+  "expo-camera": "installed via npx expo install (SDK 54 compatible)",
+  "expo-file-system": "installed via npx expo install (SDK 54 compatible)",
+  "expo-sharing": "installed via npx expo install (SDK 54 compatible)",
+  "expo-sqlite": "installed via npx expo install (SDK 54 compatible)",
+  "expo-image-manipulator": "installed via npx expo install (SDK 54 compatible)",
+  "expo-font": "~14.0.11",
+  "expo-splash-screen": "~31.0.13",
+  "@expo-google-fonts/dm-sans": "latest",
+  "nativewind": "latest",
+  "tailwindcss": "^3.4.17",
+  "xlsx": "latest",
+  "jszip": "latest",
+  "@google/generative-ai": "latest",
+  "uuid": "latest"
 }
 ```
 

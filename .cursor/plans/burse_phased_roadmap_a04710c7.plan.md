@@ -7,7 +7,7 @@ todos:
     status: completed
   - id: phase-2
     content: "Phase 2: Data Layer & Type Definitions"
-    status: pending
+    status: completed
   - id: phase-3
     content: "Phase 3: Gemini API Integration"
     status: pending
@@ -65,20 +65,23 @@ Use this document to track progress across sessions. Open a new session for each
 
 ## Phase 2: Data Layer & Type Definitions
 
-**Status**: NOT STARTED
+**Status**: COMPLETE
 
 **Goal**: Build the local persistence layer so all subsequent phases have somewhere to read/write data.
 
-**Scope**:
+**What was delivered**:
 
-- Define the `Receipt` TypeScript interface in `types/receipt.ts`
-- Set up SQLite database initialization and migration in `lib/database.ts`
-- Create CRUD functions: `insertReceipt`, `updateReceipt`, `getReceipt`, `getAllReceipts`, `deleteReceipt`
-- Build image storage helpers in `lib/storage.ts` (save image to document directory, delete image, get image URI)
-- Write a simple test/verification flow (insert a mock receipt, query it back)
+- `types/receipt.ts`: `Receipt` interface, `ReceiptStatus` and `ConfidenceLevel` union types, `EditableReceiptFields` pick type for inline editing, `GeminiParseResult` interface for Gemini response mapping
+- `lib/database.ts`: `initDatabase()` opens `burse.db` and creates `receipts` + `_migrations` tables; full CRUD: `insertReceipt`, `updateReceipt` (dynamic partial), `getReceipt`, `getAllReceipts` (sorted by `createdAt DESC`), `deleteReceipt`; `rowToReceipt()` helper for SQLite-to-TypeScript coercion; `__devVerifyDatabase()` runs full CRUD cycle in dev mode
+- `lib/storage.ts`: Uses new SDK 54 class-based `expo-file-system` API (`Paths`, `File`, `Directory`); `saveReceiptImage` copies to `receipts/{uuid}.jpg`, `deleteReceiptImage`, `getReceiptImageUri`, `deleteAllReceiptImages`
+- `app/_layout.tsx`: Calls `initDatabase()` on mount, gates splash screen on both fonts + DB ready, runs dev verification behind `__DEV__`
 
-**Entry criteria**: Phase 1 complete
-**Exit criteria**: Can programmatically create, read, update, delete receipts with associated images in SQLite + file system
+**Design decisions made in this phase**:
+
+- **expo-sqlite async API**: Uses `openDatabaseAsync`/`runAsync`/`getAllAsync`/`getFirstAsync` (new unified API in v16, no legacy)
+- **expo-file-system class API**: Uses `Paths.document`, `File`, `Directory` classes (SDK 54 new API; legacy `documentDirectory`/`copyAsync` deprecated and throws at runtime)
+- **errorMessage as `string | null`**: Not optional, for consistent 1:1 SQLite column mapping
+- **GeminiParseResult snake_case**: Matches the JSON schema Gemini will return, kept separate from app's `Receipt` camelCase model
 
 ---
 
