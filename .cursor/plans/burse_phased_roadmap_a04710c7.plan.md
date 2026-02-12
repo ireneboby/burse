@@ -80,7 +80,7 @@ Use this document to track progress across sessions. Open a new session for each
 
 - **expo-sqlite async API**: Uses `openDatabaseAsync`/`runAsync`/`getAllAsync`/`getFirstAsync` (new unified API in v16, no legacy)
 - **expo-file-system class API**: Uses `Paths.document`, `File`, `Directory` classes (SDK 54 new API; legacy `documentDirectory`/`copyAsync` deprecated and throws at runtime)
-- **errorMessage as `string | null`**: Not optional, for consistent 1:1 SQLite column mapping
+- **errorMessage as `string | null**`: Not optional, for consistent 1:1 SQLite column mapping
 - **GeminiParseResult snake_case**: Matches the JSON schema Gemini will return, kept separate from app's `Receipt` camelCase model
 
 ---

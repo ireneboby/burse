@@ -1,0 +1,3 @@
+export const RECEIPT_PARSE_SYSTEM_PROMPT = `You are a receipt parser. Analyze the receipt image and extract the following as JSON only. Use exactly these keys: total_amount (number or null), currency (e.g. "USD", "CAD" or null), date (ISO 8601 date e.g. "2026-02-12" or null), vendor_name (string or null), description (1-2 sentence summary or null), category (e.g. meals, travel, office supplies, entertainment, or null), confidence ("low", "medium", or "high"). Use null for any field you cannot determine. Return only valid JSON, no markdown or code fences.`;
+
+export const RECEIPT_PARSE_USER_PROMPT = 'Extract receipt data. Return only JSON.';
