@@ -10,7 +10,7 @@ todos:
     status: completed
   - id: phase-3
     content: "Phase 3: Gemini API Integration"
-    status: pending
+    status: completed
   - id: phase-4
     content: "Phase 4: Camera Capture Screen"
     status: pending
@@ -87,23 +87,26 @@ Use this document to track progress across sessions. Open a new session for each
 
 ## Phase 3: Gemini API Integration
 
-**Status**: NOT STARTED
+**Status**: COMPLETE
 
 **Goal**: Send a receipt image to Gemini and get structured expense data back as parsed JSON.
 
-**Scope**:
+**What was delivered**:
 
-- Create Gemini API client in `lib/gemini.ts` using `@google/generative-ai`
-- Design and iterate on the receipt parsing prompt in `constants/prompts.ts`
-- Implement image resizing (max 1024px) via `expo-image-manipulator` before sending to reduce token usage
-- Implement base64 encoding of images for the API call
-- Parse Gemini's JSON response into the `Receipt` type, handling malformed responses gracefully
-- Add rate-limiting logic (max 15 concurrent requests per minute, queue the rest)
-- Add retry logic for transient failures
-- Obtain a free Gemini API key and store it in a config constant (embedded, since trusted users only)
+- `constants/config.ts`: `GEMINI_API_KEY` from `EXPO_PUBLIC_GEMINI_API_KEY` (or empty); `.env.example` and `.env` in `.gitignore` for local keys
+- `constants/prompts.ts`: `RECEIPT_PARSE_SYSTEM_PROMPT` and `RECEIPT_PARSE_USER_PROMPT` for receipt JSON extraction (schema matches `GeminiParseResult`)
+- `lib/gemini.ts`: Gemini 2.0 Flash client with `parseReceiptImage(imageUri)` returning `{ ok: true, result }` or `{ ok: false, error }`; image resize to 1024px + base64 via `expo-image-manipulator`; rolling 15 RPM rate limit; retry (2 retries, 1s/2s backoff) for 429/5xx/network; JSON parse/validate with markdown fence stripping; `geminiParseResultToReceiptFields()` for Phase 5
+- `react-native-get-random-values` installed and imported first in `app/_layout.tsx` so `uuid` works in React Native (Hermes)
+- Metro `resolver.assetExts.push('wasm')` for expo-sqlite web bundle
+
+**Design decisions made in this phase**:
+
+- **API key**: Env var `EXPO_PUBLIC_GEMINI_API_KEY` with fallback to empty string; no key in repo
+- **Rate limit**: In-memory rolling 60s window, max 15 request starts per minute; queue waits until slot free
+- **Result type**: Discriminated union `ParseReceiptResult`; caller (Phase 5) merges result with id/imageUri/status/createdAt for `insertReceipt`
 
 **Entry criteria**: Phase 2 complete (Receipt type defined)
-**Exit criteria**: Can pass a receipt photo and receive a correctly parsed `Receipt` object. Rate limiting and error handling work.
+**Exit criteria**: Can pass a receipt photo and receive a correctly parsed result or clear error. Rate limiting and error handling work.
 
 ---
 

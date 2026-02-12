@@ -10,7 +10,7 @@ todos:
     status: completed
   - id: gemini-client
     content: Build Gemini API client with prompt engineering, image resizing, rate limiting, and JSON parsing
-    status: pending
+    status: completed
   - id: camera-screen
     content: Build rapid-fire camera capture screen with photo count badge
     status: pending
@@ -77,11 +77,11 @@ isProject: false
 - **Structured output**: Gemini supports JSON mode, so we get clean parsed data back
 - **Accuracy**: Gemini 2.0 Flash is strong at document/receipt understanding
 
-**API Integration Pattern:**
+**API Integration Pattern (implemented in `lib/gemini.ts`):**
 
-- Send base64 receipt image + a system prompt describing the desired JSON schema
-- Gemini returns structured JSON with: `total`, `date`, `vendor`, `description`, `currency`, `lineItems` (optional)
-- API key embedded in app (acceptable since only 1-2 trusted users)
+- Send base64 receipt image (resized to 1024px) + system/user prompts from `constants/prompts.ts`
+- Gemini returns structured JSON mapped to `GeminiParseResult` (snake_case); parsed and validated in `parseReceiptImage()`
+- API key via `EXPO_PUBLIC_GEMINI_API_KEY` (e.g. in `.env`); `.env` gitignored, `.env.example` provided
 
 **Prompt design** (critical for accuracy):
 
@@ -225,13 +225,14 @@ burse/
     export.ts               # XLSX generation + ZIP bundling
     storage.ts              # Image file management
   constants/
+    config.ts               # GEMINI_API_KEY (env or placeholder)
     prompts.ts              # LLM prompt templates
   types/
     receipt.ts              # TypeScript interfaces
   global.css                # Tailwind directives (@tailwind base/components/utilities)
   tailwind.config.js        # NativeWind config: custom colors, fonts
   babel.config.js           # Babel config with NativeWind preset
-  metro.config.js           # Metro bundler config with NativeWind
+  metro.config.js           # Metro config: NativeWind + assetExts includes 'wasm' for expo-sqlite web
   nativewind-env.d.ts       # TypeScript types for className prop
   app.json                  # Expo config
   package.json
@@ -273,7 +274,8 @@ burse/
   "xlsx": "latest",
   "jszip": "latest",
   "@google/generative-ai": "latest",
-  "uuid": "latest"
+  "uuid": "latest",
+  "react-native-get-random-values": "installed (required for uuid in React Native/Hermes)"
 }
 ```
 
