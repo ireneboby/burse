@@ -3,7 +3,6 @@ import "../global.css";
 import { useEffect, useState } from "react";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import * as SplashScreen from "expo-splash-screen";
 import {
   useFonts,
   DMSans_400Regular,
@@ -12,7 +11,13 @@ import {
 } from "@expo-google-fonts/dm-sans";
 import { initDatabase, __devVerifyDatabase } from "@/lib/database";
 
-SplashScreen.preventAutoHideAsync();
+// Suppress unhandled SplashScreen promise rejections in Expo Go
+const originalConsoleError = console.error;
+console.error = (...args: unknown[]) => {
+  const msg = typeof args[0] === 'string' ? args[0] : String(args[0] ?? '');
+  if (msg.includes('native splash screen')) return;
+  originalConsoleError(...args);
+};
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -30,12 +35,6 @@ export default function RootLayout() {
       }
     });
   }, []);
-
-  useEffect(() => {
-    if (fontsLoaded && dbReady) {
-      SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded, dbReady]);
 
   if (!fontsLoaded || !dbReady) {
     return null;

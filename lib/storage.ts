@@ -1,24 +1,38 @@
+import { Platform } from 'react-native';
 import { Paths, File, Directory } from 'expo-file-system';
 import { v4 as uuidv4 } from 'uuid';
 
-const receiptsDir = new Directory(Paths.document, 'receipts');
+let receiptsDir: Directory | null = null;
+
+function getReceiptsDir(): Directory {
+  if (Platform.OS === 'web') {
+    throw new Error('Receipt storage is not supported on web. Use the app on a device.');
+  }
+  if (!receiptsDir) {
+    receiptsDir = new Directory(Paths.document, 'receipts');
+  }
+  return receiptsDir;
+}
 
 function ensureReceiptsDir(): void {
-  if (!receiptsDir.exists) {
-    receiptsDir.create({ intermediates: true });
+  const dir = getReceiptsDir();
+  if (!dir.exists) {
+    dir.create({ intermediates: true });
   }
 }
 
 export function saveReceiptImage(sourceUri: string): string {
   ensureReceiptsDir();
+  const dir = getReceiptsDir();
   const filename = `${uuidv4()}.jpg`;
-  const destFile = new File(receiptsDir, filename);
+  const destFile = new File(dir, filename);
   const sourceFile = new File(sourceUri);
   sourceFile.copy(destFile);
   return destFile.uri;
 }
 
 export function deleteReceiptImage(imageUri: string): void {
+  if (Platform.OS === 'web') return;
   const file = new File(imageUri);
   if (file.exists) {
     file.delete();
@@ -26,12 +40,17 @@ export function deleteReceiptImage(imageUri: string): void {
 }
 
 export function getReceiptImageUri(filename: string): string {
-  return new File(receiptsDir, filename).uri;
+  if (Platform.OS === 'web') {
+    throw new Error('Receipt storage is not supported on web.');
+  }
+  return new File(getReceiptsDir(), filename).uri;
 }
 
 export function deleteAllReceiptImages(): void {
-  if (receiptsDir.exists) {
-    receiptsDir.delete();
+  if (Platform.OS === 'web') return;
+  const dir = getReceiptsDir();
+  if (dir.exists) {
+    dir.delete();
   }
-  receiptsDir.create({ intermediates: true });
+  dir.create({ intermediates: true });
 }
