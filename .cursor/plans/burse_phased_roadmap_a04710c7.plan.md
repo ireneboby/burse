@@ -13,7 +13,7 @@ todos:
     status: completed
   - id: phase-4
     content: "Phase 4: Camera Capture Screen"
-    status: pending
+    status: completed
   - id: phase-5
     content: "Phase 5: Review Queue Screen"
     status: pending
@@ -112,20 +112,34 @@ Use this document to track progress across sessions. Open a new session for each
 
 ## Phase 4: Camera Capture Screen
 
-**Status**: NOT STARTED
+**Status**: COMPLETE
 
 **Goal**: Build the rapid-fire camera screen optimized for scanning many receipts quickly.
 
-**Scope**:
+**What was delivered**:
 
-- Build `app/camera.tsx` using `expo-camera`
-- Full-screen camera preview with a large, responsive shutter button
-- Rapid-fire capture: tap to shoot, no review delay, immediately ready for next shot
-- Running count badge showing "N captured" (e.g., floating badge in corner)
-- Flash toggle button
-- "Done" button that navigates to the Review Queue with captured image URIs
-- Save each captured photo to the file system via `lib/storage.ts`
-- Handle camera permissions gracefully (request on first use, explain if denied)
+- `app/camera.tsx`: Full-screen `CameraView` (expo-camera v17) with iOS-Camera-style UI
+- **Permissions**: `useCameraPermissions()` hook; friendly prompt with camera icon; "Open Settings" fallback when `canAskAgain` is false
+- **Shutter button**: iOS-style circular shutter (outer ring + inner fill, 78pt) with scale animation on tap
+- **Capture feedback**: White flash overlay (200ms Animated fade), medium haptic on tap, success notification haptic on save
+- **Rapid-fire**: No review delay; camera stays ready immediately after each capture
+- **Thumbnail**: Bottom-left shows last captured photo with copper count badge; tapping it navigates to Review
+- **Flash toggle**: Top-right pill cycles Off → On → Auto with icon + label
+- **"Done →"**: Copper text link (right side of bottom tray) navigates to Review with `imageUris` JSON param; only appears after first capture
+- **Close (X)**: Top-left button to dismiss the modal and return to Home
+- **Safe area**: `useSafeAreaInsets()` for proper padding below notch/Dynamic Island and above home indicator
+- **autofocus**: `autofocus="on"` for sharp receipt photos
+- `app/review.tsx`: Reads `imageUris` from `useLocalSearchParams()` and parses for Phase 5
+- `lib/storage.ts`: Added lazy init and `Platform.OS === 'web'` guards so `expo-file-system` class API doesn't crash on web
+- `app/_layout.tsx`: Suppressed expo-router's internal SplashScreen errors in Expo Go (no native splash registered for view controller)
+
+**Design decisions made in this phase**:
+
+- `**useSafeAreaInsets()` over `SafeAreaView**`: Manual insets give precise control on all iPhone models; `SafeAreaView` with `edges` was unreliable for absolute-positioned overlays
+- **No `SafeAreaView`/`pointerEvents` complexity**: Plain `View` with calculated padding; `pointerEvents="box-none"` not needed
+- **Capture params via Expo Router**: `imageUris` passed as JSON string in route params; no global state or context needed
+- **Lazy storage init**: `Directory(Paths.document, 'receipts')` created on first use, not at import time, to avoid web crashes
+- **SplashScreen suppression**: `console.error` filter for "native splash screen" messages since expo-router calls SplashScreen internally and Expo Go doesn't support it
 
 **Entry criteria**: Phase 2 complete (storage helpers exist)
 **Exit criteria**: Can open camera, rapidly capture multiple receipt photos, see count, tap Done and navigate forward with images saved locally

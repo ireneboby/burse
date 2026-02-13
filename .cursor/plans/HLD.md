@@ -13,7 +13,7 @@ todos:
     status: completed
   - id: camera-screen
     content: Build rapid-fire camera capture screen with photo count badge
-    status: pending
+    status: completed
   - id: review-screen
     content: Build review queue screen with thumbnail grid and delete capability
     status: pending
